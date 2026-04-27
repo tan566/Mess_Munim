@@ -1,33 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, TextInput, Switch } from 'react-native';
-
-const API_BASE_URL = 'http://192.168.1.24:5000/api/menu'; // Use your machine's IP for physical testing
+import { meals, mockUpdateMeal } from '../data/mockData';
 
 export default function ManageMenuScreen() {
-  const [meals, setMeals] = useState<any[]>([]);
+  const [mealList, setMealList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
-
-  // Edit form state
   const [editDesc, setEditDesc] = useState('');
   const [editPrice, setEditPrice] = useState('0');
   const [editAvail, setEditAvail] = useState(true);
 
-  const fetchMeals = async () => {
-    try {
-      const res = await fetch(API_BASE_URL);
-      const data = await res.json();
-      setMeals(data);
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to fetch meals.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchMeals();
+    setMealList([...meals]);
+    setLoading(false);
   }, []);
 
   const handleEditClick = (item: any) => {
@@ -37,30 +22,11 @@ export default function ManageMenuScreen() {
     setEditAvail(Boolean(item.is_available));
   };
 
-  const handleSave = async (id: number) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: editDesc,
-          price: parseFloat(editPrice),
-          is_available: editAvail,
-        })
-      });
-
-      if (res.ok) {
-        setEditingId(null);
-        fetchMeals(); // Refresh data
-        Alert.alert('Success', 'Meal updated!');
-      } else {
-        const errData = await res.json();
-        Alert.alert('Error', errData.error || 'Failed to update');
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Network error.');
-    }
+  const handleSave = (id: number) => {
+    mockUpdateMeal(id, editDesc, parseFloat(editPrice), editAvail);
+    setMealList([...meals]);
+    setEditingId(null);
+    Alert.alert('Success', 'Meal updated!');
   };
 
   const renderItem = ({ item }: { item: any }) => {
@@ -129,7 +95,7 @@ export default function ManageMenuScreen() {
     <View style={styles.container}>
       <Text style={styles.screenTitle}>Today's Menu Pricing</Text>
       <FlatList
-        data={meals}
+        data={mealList}
         keyExtractor={item => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 30 }}

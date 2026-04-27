@@ -1,33 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, ActivityIndicator } from 'react-native';
+import { orders } from '../data/mockData';
 
 export default function TransactionHistory({ route }: any) {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Since we only track `orders` in our mock DB right now, we will fetch those.
-  // In a real app, this would be `GET /api/student/transactions/:userId`
   const userId = route.params?.userId || 1;
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-         const res = await fetch(`http://192.168.1.24:5000/api/admin/pending-approvals`); // Using admin mock route just to get data
-         // In reality, we just fake the transaction history based on the MVP since there's no specific route yet
-         setTimeout(() => {
-           setTransactions([
-             { id: 1, type: 'Subscription', amount: 0, date: 'Today, 8:00 AM', status: 'fulfilled' },
-             { id: 2, type: 'A la Carte (Paneer)', amount: 40, date: 'Today, 1:15 PM', status: 'fulfilled' },
-             { id: 3, type: 'Subscription', amount: 0, date: 'Yesterday, 8:10 PM', status: 'fulfilled' },
-             { id: 4, type: 'Added Balance', amount: 3000, date: 'Mon, 10:00 AM', status: 'credit' }
-           ]);
-           setLoading(false);
-         }, 800);
-      } catch (err) {
-         setLoading(false);
-      }
-    };
-    fetchHistory();
+    const userOrders = orders
+      .filter(o => o.userId === userId)
+      .map(o => ({
+        id: o.id,
+        type: o.description,
+        amount: o.amount,
+        date: o.date,
+        status: o.description === 'Added Balance' ? 'credit' : o.status,
+      }))
+      .reverse();
+    setTransactions(userOrders);
+    setLoading(false);
   }, [userId]);
 
   const renderItem = ({ item }: any) => {

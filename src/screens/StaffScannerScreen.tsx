@@ -1,39 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { mockScan } from '../data/mockData';
 
 export default function StaffScannerScreen({ navigation }: any) {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
 
   useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    }
+    if (!permission?.granted) requestPermission();
   }, [permission]);
 
-  const API_BASE_URL = 'http://192.168.1.24:5000/api'; // Use actual IP if testing on device
-
-  const processPayload = async (payload: string) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/staff/scan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload })
-      });
-      const data = await res.json();
-      
-      if (res.ok) {
-        Alert.alert("✅ Verified!", data.message);
-      } else {
-        Alert.alert("❌ Error", data.error || 'Failed to process meal.');
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Network Error", "Could not reach the server.");
-    } finally {
-      setScanned(false);
+  const processPayload = (payload: string) => {
+    const result = mockScan(payload);
+    if ('error' in result) {
+      Alert.alert('❌ Error', result.error);
+    } else {
+      Alert.alert('✅ Verified!', result.message);
     }
+    setScanned(false);
   };
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {

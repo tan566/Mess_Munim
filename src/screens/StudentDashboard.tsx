@@ -1,30 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { mockGetStudent } from '../data/mockData';
 
 export default function StudentDashboard({ navigation, route }: any) {
-  const [studentData, setStudentData] = useState({ name: 'Student', rollNo: 'Loading...', walletBalance: 0 });
+  const [studentData, setStudentData] = useState({ name: 'Student', rollNo: '', walletBalance: 0 });
   const [loading, setLoading] = useState(true);
-  const userId = route.params?.userId || 1; // Defaulting to user ID 1 for MVP
+  const userId = route.params?.userId || 1;
 
   useEffect(() => {
-    // We add a listener so it refreshes every time the user navigates back to this screen
-    const unsubscribe = navigation.addListener('focus', async () => {
-      try {
-        const res = await fetch(`http://192.168.1.24:5000/api/student/wallet/${userId}`);
-        const data = await res.json();
-        if (res.ok) {
-           setStudentData({ 
-             name: data.email ? data.email.split('@')[0] : 'Student', 
-             rollNo: data.roll_no, 
-             walletBalance: data.balance 
-           });
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
+    const unsubscribe = navigation.addListener('focus', () => {
+      const user = mockGetStudent(userId);
+      if (user) {
+        setStudentData({ name: user.email.split('@')[0], rollNo: user.rollNo, walletBalance: user.balance });
       }
+      setLoading(false);
     });
     return unsubscribe;
   }, [navigation, userId]);

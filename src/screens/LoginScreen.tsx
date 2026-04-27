@@ -1,51 +1,30 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
+import { mockLogin } from '../data/mockData';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter email and password');
       return;
     }
-
     setLoading(true);
-    try {
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.24:5000/api';
-
-      const response = await fetch(`${baseUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Store token for subsequent requests
-        if (data.token) {
-          const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-          await AsyncStorage.setItem('authToken', data.token);
-        }
-        if (data.user.role === 'admin') {
-          navigation.replace('AdminDashboard');
-        } else if (data.user.role === 'staff') {
-          navigation.replace('StaffScannerScreen');
-        } else {
-          navigation.replace('StudentDashboard', { userId: data.user.id });
-        }
-      } else {
-        Alert.alert(data.error || 'Login Failed', data.message || 'Invalid credentials or connection error');
-      }
-    } catch (err: any) {
-      console.error('Fetch Error:', err);
-      Alert.alert('Network Error', `Could not connect to the server.\n\nError: ${err.message}`);
-    } finally {
+    // Simulate async
+    setTimeout(() => {
+      const user = mockLogin(email.trim(), password);
       setLoading(false);
-    }
+      if (!user) {
+        Alert.alert('Login Failed', 'Invalid email or password');
+        return;
+      }
+      if (user.role === 'admin') navigation.replace('AdminDashboard');
+      else if (user.role === 'staff') navigation.replace('StaffScannerScreen');
+      else navigation.replace('StudentDashboard', { userId: user.id });
+    }, 500);
   };
 
   return (
@@ -82,6 +61,13 @@ export default function LoginScreen({ navigation }: any) {
         <TouchableOpacity style={{ marginTop: 20, alignItems: 'center' }} onPress={() => navigation.navigate('Signup')}>
           <Text style={{ color: '#4a5568', fontSize: 16 }}>Don't have an account? Sign up</Text>
         </TouchableOpacity>
+
+        <View style={styles.hintContainer}>
+          <Text style={styles.hint}>Test Credentials:</Text>
+          <Text style={styles.hint}>Student: student@test.com / 12345678</Text>
+          <Text style={styles.hint}>Staff:   staff@test.com / 12345678</Text>
+          <Text style={styles.hint}>Admin:   admin@test.com / 12345678</Text>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -130,5 +116,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  hintContainer: {
+    marginTop: 30,
+    padding: 15,
+    backgroundColor: '#ebf8ff',
+    borderRadius: 8,
+  },
+  hint: {
+    color: '#2b6cb0',
+    fontSize: 13,
+    marginBottom: 4,
   },
 });

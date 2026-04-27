@@ -1,33 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-
-const API_BASE_URL = 'http://192.168.1.24:5000/api';
+import { meals, mockCheckout } from '../data/mockData';
 
 export default function MenuScreen({ route, navigation }: any) {
-  const [meals, setMeals] = useState<any[]>([]);
+  const [mealList, setMealList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [qrPayload, setQrPayload] = useState('');
 
-  const userId = route.params?.userId || 1; 
-
-  const fetchMenu = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/menu`);
-      const data = await res.json();
-      setMeals(data.filter((m: any) => m.is_available));
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to fetch the daily menu.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const userId = route.params?.userId || 1;
 
   useEffect(() => {
-    fetchMenu();
+    setMealList(meals.filter(m => m.is_available));
+    setLoading(false);
   }, []);
 
   const handleBuy = (meal: any) => {
@@ -41,31 +28,15 @@ export default function MenuScreen({ route, navigation }: any) {
     );
   };
 
-  const processCheckout = async (meal: any) => {
+  const processCheckout = (meal: any) => {
     setPurchasing(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/student/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          amount: meal.price,
-          description: `Extra ${meal.meal_time} Plate`
-        })
-      });
-      const data = await res.json();
-      
-      if (res.ok) {
-        setQrPayload(data.qrPayload);
-        setQrModalVisible(true);
-      } else {
-        Alert.alert('Checkout Failed', data.error || 'Insufficient funds');
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Network Error', 'Could not process payment.');
-    } finally {
-      setPurchasing(false);
+    const result = mockCheckout(userId, meal.price, `Extra ${meal.meal_time} Plate`);
+    setPurchasing(false);
+    if ('error' in result) {
+      Alert.alert('Checkout Failed', result.error);
+    } else {
+      setQrPayload(result.qrPayload);
+      setQrModalVisible(true);
     }
   };
 
@@ -95,7 +66,7 @@ export default function MenuScreen({ route, navigation }: any) {
         <View style={styles.center}><ActivityIndicator size="large" color="#2b6cb0" /></View>
       ) : (
         <FlatList
-          data={meals}
+          data={mealList}
           keyExtractor={item => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 20 }}

@@ -1,69 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Linking, TextInput } from 'react-native';
-
-const API_BASE_URL = 'http://192.168.1.24:5000/api/admin'; // Change if using physical device
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { pendingStudents, mockApprovePendingStudent } from '../data/mockData';
 
 export default function PendingApprovalsScreen() {
   const [approvals, setApprovals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [balances, setBalances] = useState<{ [key: number]: string }>({});
 
-  const fetchApprovals = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/pending-approvals`);
-      const data = await response.json();
-      setApprovals(data);
-      // Initialize balance input state
-      const initialBals: any = {};
-      data.forEach((u: any) => initialBals[u.id] = '3000');
-      setBalances(initialBals);
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Failed to fetch pending approvals. Is the backend running?');
-    } finally {
-      setLoading(false);
-    }
+  const fetchApprovals = () => {
+    setApprovals([...pendingStudents]);
+    const initialBals: any = {};
+    pendingStudents.forEach(u => initialBals[u.id] = '3000');
+    setBalances(initialBals);
+    setLoading(false);
   };
 
-  useEffect(() => {
-    fetchApprovals();
-  }, []);
+  useEffect(() => { fetchApprovals(); }, []);
 
-  const handleAction = async (userId: number, action: 'approve' | 'reject') => {
-    try {
-      const initialBalance = balances[userId] || '0';
-      const response = await fetch(`${API_BASE_URL}/approve-student/${userId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, initialBalance })
-      });
-      
-      const data = await response.json();
-      if (response.ok) {
-        Alert.alert('Success', data.message);
-        // Remove the processed user from the local state list immediately
-        setApprovals(prev => prev.filter(a => a.id !== userId));
-      } else {
-        Alert.alert('Error', data.error || 'Failed to update status');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Network error while attempting to process action.');
-    }
+  const handleAction = (userId: number, action: 'approve' | 'reject') => {
+    const balance = parseFloat(balances[userId] || '0');
+    mockApprovePendingStudent(userId, action, balance);
+    Alert.alert('Success', `Student ${action === 'approve' ? 'approved' : 'rejected'}`);
+    setApprovals(prev => prev.filter(a => a.id !== userId));
   };
 
-  const getDocUrl = (docs: any[], type: string) => {
-    const doc = docs?.find(d => d.type === type);
-    return doc ? `http://localhost:5000${doc.url}` : null;
-  };
-
-  const openLink = (url: string | null) => {
-    if (url) {
-      Linking.openURL(url).catch(err => Alert.alert('Error', 'Could not open the file.'));
-    } else {
-      Alert.alert('No Document', 'This document is missing.');
-    }
-  };
+  const getDocUrl = (_docs: any, _type: string) => null; // No real docs in mock
 
   if (loading) {
     return (
@@ -92,23 +53,19 @@ export default function PendingApprovalsScreen() {
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.label}>Roll No:</Text>
-                <Text style={styles.value}>{item.roll_no}</Text>
+                <Text style={styles.value}>{item.rollNo}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.label}>Hostel:</Text>
-                <Text style={styles.value}>{item.hostel_name}</Text>
+                <Text style={styles.value}>{item.hostel}</Text>
               </View>
 
               <Text style={styles.docsTitle}>Attached Documents:</Text>
               <View style={styles.docsContainer}>
-                <TouchableOpacity 
-                   style={styles.docButton} 
-                   onPress={() => openLink(getDocUrl(item.documents, 'allocation_proof'))}>
+                <TouchableOpacity style={styles.docButton} onPress={() => Alert.alert('Demo Mode', 'Documents not available in demo.')}>
                   <Text style={styles.docButtonText}>Allocation Proof</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                   style={styles.docButton} 
-                   onPress={() => openLink(getDocUrl(item.documents, 'fee_receipt'))}>
+                <TouchableOpacity style={styles.docButton} onPress={() => Alert.alert('Demo Mode', 'Documents not available in demo.')}>
                   <Text style={styles.docButtonText}>Fee Receipt</Text>
                 </TouchableOpacity>
               </View>
