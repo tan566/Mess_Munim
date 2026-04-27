@@ -84,10 +84,6 @@ export default function SignupScreen({ navigation }: any) {
              <Text style={styles.buttonText}>Submit for Approval</Text>
           )}
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.linkButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.linkText}>Already have an account? Login here</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

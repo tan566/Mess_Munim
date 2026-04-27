@@ -1,4 +1,5 @@
 import React from 'react';
+import { TouchableOpacity, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -16,27 +17,38 @@ import ManageMenuScreen from '../screens/ManageMenuScreen';
 
 const Stack = createNativeStackNavigator();
 
+const headerStyle = {
+  headerStyle: { backgroundColor: '#2b6cb0' },
+  headerTintColor: '#fff',
+  headerTitleStyle: { fontWeight: 'bold' as const },
+  headerBackTitle: 'Back',
+};
+
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: false }} />
-        
-        {/* Student Flow */}
-        <Stack.Screen name="StudentDashboard" component={StudentDashboard} options={{ title: 'Student Dashboard' }} />
-        <Stack.Screen name="MenuScreen" component={MenuScreen} options={{ title: 'Menu' }} />
-        <Stack.Screen name="CartScreen" component={CartScreen} options={{ title: 'Cart' }} />
-        <Stack.Screen name="QRScreen" component={QRScreen} options={{ title: 'Your QR Code' }} />
-        <Stack.Screen name="TransactionHistory" component={TransactionHistory} options={{ title: 'Transactions' }} />
+      <Stack.Navigator initialRouteName="Login" screenOptions={headerStyle}>
+        {/* Auth — no header */}
+        <Stack.Screen name="Login"  component={LoginScreen}  options={{ headerShown: false }} />
+        <Stack.Screen name="Signup" component={SignupScreen} options={{
+          title: 'Create Account',
+          headerShown: true,
+        }} />
+
+        {/* Student Flow — dashboard manages its own header */}
+        <Stack.Screen name="StudentDashboard" component={StudentDashboard} options={{ headerShown: false }} />
+        <Stack.Screen name="MenuScreen"        component={MenuScreen}        options={{ title: '🍽️ Today\'s Menu' }} />
+        <Stack.Screen name="CartScreen"        component={CartScreen}        options={{ title: '🛒 My Cart' }} />
+        <Stack.Screen name="QRScreen"          component={QRScreen}          options={{ title: '🎟️ Meal Token', headerBackVisible: false }} />
+        <Stack.Screen name="TransactionHistory" component={TransactionHistory} options={{ title: '📜 Transactions' }} />
 
         {/* Staff Flow */}
-        <Stack.Screen name="StaffScannerScreen" component={StaffScannerScreen} options={{ title: 'QR Scanner' }} />
+        <Stack.Screen name="StaffScannerScreen" component={StaffScannerScreen} options={{ headerShown: false }} />
 
-        {/* Admin Flow */}
-        <Stack.Screen name="AdminDashboard" component={AdminDashboard} options={{ title: 'Admin Dashboard' }} />
-        <Stack.Screen name="PendingApprovals" component={PendingApprovalsScreen} options={{ title: 'Pending Approvals' }} />
-        <Stack.Screen name="ManageMenu" component={ManageMenuScreen} options={{ title: 'Manage Menu' }} />
+        {/* Admin Flow — dashboard manages its own header */}
+        <Stack.Screen name="AdminDashboard"      component={AdminDashboard}         options={{ headerShown: false }} />
+        <Stack.Screen name="PendingApprovals"    component={PendingApprovalsScreen} options={{ title: '✅ Pending Approvals' }} />
+        <Stack.Screen name="ManageMenu"          component={ManageMenuScreen}       options={{ title: '🍽️ Manage Menu' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

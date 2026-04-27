@@ -67,14 +67,14 @@ export default function StudentDashboard({ navigation, route }: any) {
             <Text style={styles.actionText}>View Menu</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('TransactionHistory')}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('TransactionHistory', { userId })}>
             <Text style={styles.actionIcon}>📜</Text>
             <Text style={styles.actionText}>Transactions</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('QRScreen')}>
-            <Text style={styles.actionIcon}>📱</Text>
-            <Text style={styles.actionText}>Active QR</Text>
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('CartScreen', { userId })}>
+            <Text style={styles.actionIcon}>🛒</Text>
+            <Text style={styles.actionText}>My Cart</Text>
           </TouchableOpacity>
         </View>
 
