@@ -30,6 +30,18 @@ export default function AdminDashboard({ navigation }: any) {
 
         <Text style={styles.sectionTitle}>Management Console</Text>
 
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('PendingApprovals')}
+        >
+          <Text style={styles.menuIcon}>✅</Text>
+          <View style={styles.menuTextContainer}>
+            <Text style={styles.menuTitle}>Pending Approvals</Text>
+            <Text style={styles.menuSubtitle}>Review new student registrations</Text>
+          </View>
+          <Text style={styles.menuArrow}>→</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuIcon}>👥</Text>
           <View style={styles.menuTextContainer}>
@@ -39,11 +51,14 @@ export default function AdminDashboard({ navigation }: any) {
           <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity 
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ManageMenu')}
+        >
           <Text style={styles.menuIcon}>🍽️</Text>
           <View style={styles.menuTextContainer}>
             <Text style={styles.menuTitle}>Manage Menu Items</Text>
-            <Text style={styles.menuSubtitle}>Update food and prices</Text>
+            <Text style={styles.menuSubtitle}>Update food and plate prices</Text>
           </View>
           <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>

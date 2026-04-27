@@ -1,23 +1,50 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter email and password');
       return;
     }
 
-    // Mock Login Logic
-    if (email.toLowerCase().includes('staff')) {
-      navigation.replace('StaffScannerScreen');
-    } else if (email.toLowerCase().includes('admin')) {
-      navigation.replace('AdminDashboard');
-    } else {
-      navigation.replace('StudentDashboard');
+    setLoading(true);
+    try {
+      const getBaseUrl = () => {
+        return 'http://192.168.1.24:5000/api';
+      };
+
+      console.log('Attempting login to:', `${getBaseUrl()}/auth/login`);
+
+      const response = await fetch(`${getBaseUrl()}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await response.json();
+      console.log('Login Response:', data);
+      
+      if (response.ok) {
+        if (data.user.role === 'admin') {
+          navigation.replace('AdminDashboard');
+        } else if (data.user.role === 'staff') {
+          navigation.replace('StaffScannerScreen');
+        } else {
+          navigation.replace('StudentDashboard', { userId: data.user.id });
+        }
+      } else {
+        Alert.alert(data.error || 'Login Failed', data.message || 'Invalid credentials or connection error');
+      }
+    } catch (err: any) {
+      console.error('Fetch Error:', err);
+      Alert.alert('Network Error', `Could not connect to the server at port 5000.\n\nError: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,8 +71,16 @@ export default function LoginScreen({ navigation }: any) {
           secureTextEntry
         />
         
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Login</Text>
+        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+          {loading ? (
+             <ActivityIndicator color="#fff" />
+          ) : (
+             <Text style={styles.buttonText}>Login</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={{ marginTop: 20, alignItems: 'center' }} onPress={() => navigation.navigate('Signup')}>
+          <Text style={{ color: '#4a5568', fontSize: 16 }}>Don't have an account? Sign up</Text>
         </TouchableOpacity>
 
         <View style={styles.hintContainer}>

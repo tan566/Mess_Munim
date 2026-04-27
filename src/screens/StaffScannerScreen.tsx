@@ -12,17 +12,54 @@ export default function StaffScannerScreen({ navigation }: any) {
     }
   }, [permission]);
 
+  const API_BASE_URL = 'http://192.168.1.24:5000/api'; // Use actual IP if testing on device
+
+  const processPayload = async (payload: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/staff/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        Alert.alert("✅ Verified!", data.message);
+      } else {
+        Alert.alert("❌ Error", data.error || 'Failed to process meal.');
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Network Error", "Could not reach the server.");
+    } finally {
+      setScanned(false);
+    }
+  };
+
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
     Alert.alert(
       'QR Scanned!',
-      `Payload: ${data}\n\nVerify and Confirm Serving?`,
+      `Confirm processing this token?`,
       [
         { text: 'Cancel', onPress: () => setScanned(false), style: 'cancel' },
-        { text: 'Confirm', onPress: () => {
-            // Mock backend confirmation
-            Alert.alert("Success", "Meal confirmed & balance deducted!");
-            setScanned(false);
+        { text: 'Confirm', onPress: () => processPayload(data) }
+      ]
+    );
+  };
+
+  const simulateScan = () => {
+    // This allows testing on the emulator which doesn't have a camera
+    Alert.prompt(
+      "Simulate QR Scan",
+      "Paste the exact JSON payload from the student's QR code:",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Simulate', onPress: (text) => {
+          if(text) {
+             setScanned(true);
+             processPayload(text);
+          }
         }}
       ]
     );
@@ -68,9 +105,13 @@ export default function StaffScannerScreen({ navigation }: any) {
 
       <View style={styles.infoBox}>
         <Text style={styles.infoText}>Point device at Student's Meal Token QR code.</Text>
-        {scanned && (
+        {scanned ? (
           <TouchableOpacity style={styles.scanAgainBtn} onPress={() => setScanned(false)}>
             <Text style={styles.scanAgainText}>Tap to Scan Again</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={[styles.scanAgainBtn, {backgroundColor: '#4a5568'}]} onPress={simulateScan}>
+            <Text style={styles.scanAgainText}>Emulator: Simulate Scan</Text>
           </TouchableOpacity>
         )}
       </View>
