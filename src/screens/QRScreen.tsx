@@ -1,123 +1,83 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 export default function QRScreen({ route, navigation }: any) {
-  // Try to get totalAmount from params (navigated from Cart), else default to some mock data
-  const totalAmount = route?.params?.totalAmount || 0;
-  
-  // Mock QR payload containing transaction id or token
-  const qrPayload = JSON.stringify({
-    tokenId: 'MOCK-TOKEN-XYZ123',
-    amount: totalAmount,
-    timestamp: new Date().toISOString()
-  });
+  const { qrPayload, total, userId } = route.params || {};
+  const [used, setUsed] = useState(false);
+
+  const parsedOrder = qrPayload ? JSON.parse(qrPayload) : null;
+
+  const handleDone = () => {
+    navigation.replace('StudentDashboard', { userId });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Your Meal Token</Text>
-        <Text style={styles.subtitle}>Show this QR code at the mess counter</Text>
-        
-        <View style={styles.qrContainer}>
-          <QRCode
-            value={qrPayload}
-            size={200}
-            color="black"
-            backgroundColor="white"
-          />
+        <Text style={styles.title}>{used ? '✅ QR Used' : '🎟️ Meal Token'}</Text>
+        <Text style={styles.subtitle}>
+          {used
+            ? 'This QR has been scanned. It is no longer valid.'
+            : 'Show this to the mess staff. Valid for one scan only.'}
+        </Text>
+
+        <View style={[styles.qrWrapper, used && styles.qrUsed]}>
+          {qrPayload && !used ? (
+            <QRCode value={qrPayload} size={210} color="#1a202c" backgroundColor="white" />
+          ) : (
+            <View style={styles.usedPlaceholder}>
+              <Text style={styles.usedIcon}>🚫</Text>
+              <Text style={styles.usedLabel}>Already Used</Text>
+            </View>
+          )}
         </View>
 
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoLabel}>Token ID:</Text>
-          <Text style={styles.infoValue}>MOCK-TOKEN-XYZ123</Text>
-          
-          {totalAmount > 0 && (
-            <>
-              <Text style={styles.infoLabel}>Amount Paid:</Text>
-              <Text style={styles.infoValue}>₹ {totalAmount.toFixed(2)}</Text>
-            </>
-          )}
+        <View style={styles.infoBox}>
+          <Row label="Order ID" value={`#${parsedOrder?.orderId ?? '—'}`} />
+          <Row label="Amount" value={`₹${total ?? parsedOrder?.amount ?? 0}`} />
+          <Row label="Items" value={parsedOrder?.description ?? '—'} />
+          <Row label="Status" value={used ? 'Used' : 'Valid — Pending Scan'} highlight={!used} />
         </View>
       </View>
 
-      <TouchableOpacity 
-        style={styles.doneBtn} 
-        onPress={() => navigation.navigate('StudentDashboard')}
-      >
+      <TouchableOpacity style={styles.doneBtn} onPress={handleDone}>
         <Text style={styles.doneText}>Back to Dashboard</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
+function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={[styles.rowValue, highlight && styles.rowHighlight]}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 20,
-    justifyContent: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 20, justifyContent: 'center' },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 30,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: '#fff', borderRadius: 16, padding: 28, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2d3748',
-    marginBottom: 8,
+  title: { fontSize: 24, fontWeight: 'bold', color: '#2d3748', marginBottom: 6 },
+  subtitle: { fontSize: 13, color: '#718096', textAlign: 'center', marginBottom: 24 },
+  qrWrapper: {
+    padding: 12, backgroundColor: '#fff', borderRadius: 12,
+    borderWidth: 2, borderColor: '#3182ce', marginBottom: 24,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#718096',
-    textAlign: 'center',
-    marginBottom: 30,
-  },
-  qrContainer: {
-    padding: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    marginBottom: 30,
-  },
-  infoContainer: {
-    width: '100%',
-    backgroundColor: '#f7fafc',
-    padding: 15,
-    borderRadius: 8,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: '#a0aec0',
-    textTransform: 'uppercase',
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4a5568',
-    marginBottom: 10,
-  },
-  doneBtn: {
-    marginTop: 30,
-    backgroundColor: '#2b6cb0',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  doneText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  }
+  qrUsed: { borderColor: '#e53e3e', opacity: 0.5 },
+  usedPlaceholder: { width: 210, height: 210, justifyContent: 'center', alignItems: 'center' },
+  usedIcon: { fontSize: 60 },
+  usedLabel: { fontSize: 18, fontWeight: 'bold', color: '#e53e3e', marginTop: 10 },
+  infoBox: { width: '100%', backgroundColor: '#f7fafc', borderRadius: 10, padding: 14 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  rowLabel: { fontSize: 13, color: '#a0aec0', textTransform: 'uppercase' },
+  rowValue: { fontSize: 14, fontWeight: 'bold', color: '#4a5568', flexShrink: 1, textAlign: 'right', maxWidth: '60%' },
+  rowHighlight: { color: '#38a169' },
+  doneBtn: { marginTop: 24, backgroundColor: '#2b6cb0', padding: 16, borderRadius: 12, alignItems: 'center' },
+  doneText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });

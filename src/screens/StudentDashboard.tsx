@@ -62,7 +62,7 @@ export default function StudentDashboard({ navigation, route }: any) {
 
         {/* Action Grid */}
         <View style={styles.actionGrid}>
-          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('MenuScreen')}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('MenuScreen', { userId })}>
             <Text style={styles.actionIcon}>🍽️</Text>
             <Text style={styles.actionText}>View Menu</Text>
           </TouchableOpacity>

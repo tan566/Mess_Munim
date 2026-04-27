@@ -11,7 +11,11 @@ export type Meal = {
 
 export type Order = {
   id: number; userId: number; description: string; amount: number;
-  status: 'pending' | 'fulfilled'; date: string;
+  status: 'pending' | 'fulfilled' | 'used'; date: string;
+};
+
+export type CartItem = {
+  mealId: number; name: string; price: number; quantity: number;
 };
 
 export type PendingStudent = {
@@ -46,6 +50,35 @@ export const pendingStudents: PendingStudent[] = [
 
 let orderIdCounter = 100;
 
+// --- Cart state (per user, keyed by userId) ---
+export const carts: Record<number, CartItem[]> = {};
+
+export function getCart(userId: number): CartItem[] {
+  return carts[userId] || [];
+}
+
+export function addToCart(userId: number, meal: Meal) {
+  if (!carts[userId]) carts[userId] = [];
+  const existing = carts[userId].find(i => i.mealId === meal.id);
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    carts[userId].push({ mealId: meal.id, name: meal.meal_time, price: meal.price, quantity: 1 });
+  }
+}
+
+export function updateCartQty(userId: number, mealId: number, delta: number) {
+  if (!carts[userId]) return;
+  const item = carts[userId].find(i => i.mealId === mealId);
+  if (!item) return;
+  item.quantity += delta;
+  if (item.quantity <= 0) carts[userId] = carts[userId].filter(i => i.mealId !== mealId);
+}
+
+export function clearCart(userId: number) {
+  carts[userId] = [];
+}
+
 // --- Mock API functions ---
 
 export function mockLogin(email: string, password: string): User | null {
@@ -63,6 +96,7 @@ export function mockCheckout(userId: number, amount: number, description: string
   // Don't deduct yet — deduct on scan
   const orderId = orderIdCounter++;
   orders.push({ id: orderId, userId, description, amount, status: 'pending', date: 'Just now' });
+  clearCart(userId);
   return { qrPayload: JSON.stringify({ orderId, userId, amount, description, type: 'a_la_carte' }) };
 }
 
@@ -82,10 +116,10 @@ export function mockScan(payload: string): { message: string } | { error: string
 
   if (type === 'a_la_carte') {
     const order = orders.find(o => o.id === orderId && o.status === 'pending');
-    if (!order) return { error: 'Order not found or already fulfilled' };
+    if (!order) return { error: 'Order not found or already used' };
     if (user.balance < amount) return { error: 'Insufficient balance' };
     user.balance -= amount;
-    order.status = 'fulfilled';
+    order.status = 'used';
     return { message: `✅ ₹${amount} deducted. Extra meal approved.` };
   }
 
