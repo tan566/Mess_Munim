@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const auth = require('../middleware/auth');
 
 // Get all pending student approvals
-router.get('/pending-approvals', async (req, res) => {
+router.get('/pending-approvals', auth(['admin']), async (req, res) => {
     try {
         const [users] = await db.query(`
             SELECT u.id, u.email, u.roll_no, h.name as hostel_name, u.status 
@@ -38,7 +39,7 @@ router.get('/pending-approvals', async (req, res) => {
 });
 
 // Approve or reject a student
-router.post('/approve-student/:userId', async (req, res) => {
+router.post('/approve-student/:userId', auth(['admin']), async (req, res) => {
     try {
         const { userId } = req.params;
         const { action, initialBalance } = req.body; // 'approve' or 'reject', plus balance

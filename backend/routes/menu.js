@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const auth = require('../middleware/auth');
 
-// Get all meals for the day
-router.get('/', async (req, res) => {
+// Get all meals — accessible to all authenticated users
+router.get('/', auth(['student', 'staff', 'admin']), async (req, res) => {
     try {
         const [meals] = await db.query('SELECT * FROM daily_meals ORDER BY id ASC');
         res.json(meals);
@@ -13,8 +14,8 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Update a specific daily meal
-router.put('/:id', async (req, res) => {
+// Update a meal — admin only
+router.put('/:id', auth(['admin']), async (req, res) => {
     try {
         const { id } = req.params;
         const { description, price, is_available } = req.body;
