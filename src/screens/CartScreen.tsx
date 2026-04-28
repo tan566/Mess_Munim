@@ -1,47 +1,48 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { getCart, updateCartQty, mockCheckout, mockGetStudent } from '../data/mockData';
+import { supabase } from '../../lib/supabase';
+import { getCart, updateCartQty, clearCart, cartTotal } from './MenuScreen';
 
 export default function CartScreen({ route, navigation }: any) {
-  const userId = route.params?.userId || 1;
+  const userId = route.params?.userId;
   const [items, setItems] = useState<any[]>([]);
   const [balance, setBalance] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
-      setItems([...getCart(userId)]);
-      const user = mockGetStudent(userId);
-      if (user) setBalance(user.balance);
+      setItems([...getCart()]);
+      supabase.from('profiles').select('balance').eq('id', userId).single()
+        .then(({ data }) => setBalance(Number(data?.balance ?? 0)));
     }, [userId])
   );
 
-  const refresh = () => {
-    setItems([...getCart(userId)]);
-    const user = mockGetStudent(userId);
-    if (user) setBalance(user.balance);
-  };
-
-  const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const refresh = () => setItems([...getCart()]);
+  const total = cartTotal();
 
   const handleQtyChange = (mealId: number, delta: number) => {
-    updateCartQty(userId, mealId, delta);
+    updateCartQty(mealId, delta);
     refresh();
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (items.length === 0) return;
     if (balance < total) {
-      Alert.alert('Insufficient Balance', `Your wallet has ₹${balance} but total is ₹${total}.`);
+      Alert.alert('Insufficient Balance', `Wallet: ₹${balance}, Total: ₹${total}`);
       return;
     }
-    const description = items.map(i => `${i.name} x${i.quantity}`).join(', ');
-    const result = mockCheckout(userId, total, description);
-    if ('error' in result) {
-      Alert.alert('Checkout Failed', result.error);
-    } else {
-      navigation.replace('QRScreen', { qrPayload: result.qrPayload, total, userId });
-    }
+    const description = items.map(i => `${i.meal.meal_time} x${i.quantity}`).join(', ');
+    const qrPayload = JSON.stringify({ userId, amount: total, description, type: 'a_la_carte', ts: Date.now() });
+
+    // Insert pending order
+    const { data: order, error } = await supabase.from('orders').insert({
+      user_id: userId, description, amount: total, status: 'pending', qr_payload: qrPayload,
+    }).select().single();
+
+    if (error) { Alert.alert('Error', error.message); return; }
+
+    clearCart();
+    navigation.replace('QRScreen', { qrPayload: JSON.stringify({ ...JSON.parse(qrPayload), orderId: order.id }), total, userId });
   };
 
   return (
@@ -58,23 +59,23 @@ export default function CartScreen({ route, navigation }: any) {
           <Text style={styles.balanceText}>Wallet Balance: ₹{balance.toFixed(2)}</Text>
           <FlatList
             data={items}
-            keyExtractor={item => item.mealId.toString()}
+            keyExtractor={i => i.meal.id.toString()}
             contentContainerStyle={{ padding: 20, paddingBottom: 10 }}
             renderItem={({ item }) => (
               <View style={styles.card}>
                 <View style={styles.info}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.price}>₹{item.price} each</Text>
+                  <Text style={styles.name}>{item.meal.meal_time}</Text>
+                  <Text style={styles.price}>₹{item.meal.price} each</Text>
                 </View>
                 <View style={styles.qtyRow}>
-                  <TouchableOpacity style={styles.qtyBtn} onPress={() => handleQtyChange(item.mealId, -1)}>
+                  <TouchableOpacity style={styles.qtyBtn} onPress={() => handleQtyChange(item.meal.id, -1)}>
                     <Text style={styles.qtyBtnText}>−</Text>
                   </TouchableOpacity>
                   <Text style={styles.qty}>{item.quantity}</Text>
-                  <TouchableOpacity style={styles.qtyBtn} onPress={() => handleQtyChange(item.mealId, 1)}>
+                  <TouchableOpacity style={styles.qtyBtn} onPress={() => handleQtyChange(item.meal.id, 1)}>
                     <Text style={styles.qtyBtnText}>+</Text>
                   </TouchableOpacity>
-                  <Text style={styles.subtotal}>₹{(item.price * item.quantity).toFixed(0)}</Text>
+                  <Text style={styles.subtotal}>₹{(item.meal.price * item.quantity).toFixed(0)}</Text>
                 </View>
               </View>
             )}
@@ -84,9 +85,7 @@ export default function CartScreen({ route, navigation }: any) {
               <Text style={styles.totalLabel}>Total</Text>
               <Text style={[styles.totalValue, total > balance && styles.overBalance]}>₹{total.toFixed(2)}</Text>
             </View>
-            {total > balance && (
-              <Text style={styles.warningText}>⚠️ Insufficient balance</Text>
-            )}
+            {total > balance && <Text style={styles.warningText}>⚠️ Insufficient balance</Text>}
             <TouchableOpacity
               style={[styles.checkoutBtn, total > balance && styles.checkoutDisabled]}
               onPress={handleCheckout}
@@ -108,10 +107,7 @@ const styles = StyleSheet.create({
   backBtn: { padding: 12, backgroundColor: '#ebf8ff', borderRadius: 8 },
   backText: { color: '#2b6cb0', fontWeight: 'bold' },
   balanceText: { textAlign: 'right', paddingHorizontal: 20, paddingTop: 12, color: '#38a169', fontWeight: 'bold', fontSize: 14 },
-  card: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2,
-  },
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
   info: { marginBottom: 10 },
   name: { fontSize: 17, fontWeight: 'bold', color: '#2d3748' },
   price: { fontSize: 13, color: '#718096', marginTop: 2 },
