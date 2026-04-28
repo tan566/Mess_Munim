@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { mockScan } from '../data/mockData';
+import { supabase } from '../../lib/supabase';
 
 export default function StaffScannerScreen({ navigation }: any) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -11,12 +11,34 @@ export default function StaffScannerScreen({ navigation }: any) {
     if (!permission?.granted) requestPermission();
   }, [permission]);
 
-  const processPayload = (payload: string) => {
-    const result = mockScan(payload);
-    if ('error' in result) {
-      Alert.alert('❌ Error', result.error);
-    } else {
-      Alert.alert('✅ Verified!', result.message);
+  const processPayload = async (payload: string) => {
+    try {
+      const data = JSON.parse(payload);
+      const { userId, type, orderId, amount } = data;
+
+      if (type === 'subscription') {
+        const { data: profile } = await supabase.from('profiles').select('status, roll_no').eq('id', userId).single();
+        if (!profile || profile.status !== 'approved') {
+          Alert.alert('❌ Error', 'Student not approved');
+        } else {
+          await supabase.from('orders').insert({ user_id: userId, description: 'Subscription Meal', amount: 0, status: 'fulfilled' });
+          Alert.alert('✅ Verified!', `Subscription meal approved for ${profile.roll_no}`);
+        }
+      } else if (type === 'a_la_carte') {
+        const { data: order } = await supabase.from('orders').select('*').eq('id', orderId).eq('status', 'pending').single();
+        if (!order) { Alert.alert('❌ Error', 'Order not found or already used'); }
+        else {
+          const { data: profile } = await supabase.from('profiles').select('balance').eq('id', userId).single();
+          if (!profile || profile.balance < amount) { Alert.alert('❌ Error', 'Insufficient balance'); }
+          else {
+            await supabase.from('profiles').update({ balance: profile.balance - amount }).eq('id', userId);
+            await supabase.from('orders').update({ status: 'used' }).eq('id', orderId);
+            Alert.alert('✅ Verified!', `₹${amount} deducted. Meal approved.`);
+          }
+        }
+      }
+    } catch {
+      Alert.alert('❌ Error', 'Invalid QR code');
     }
     setScanned(false);
   };
@@ -50,7 +72,8 @@ export default function StaffScannerScreen({ navigation }: any) {
     );
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigation.replace('Login');
   };
 
